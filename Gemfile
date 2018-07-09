@@ -7,3 +7,6 @@ gem 'sequel'
 gem 'pg'
 
 gem 'shotgun'
+
+gem 'rspec'
+gem 'rack-test'
