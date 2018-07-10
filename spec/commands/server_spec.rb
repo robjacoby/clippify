@@ -284,13 +284,20 @@ RSpec.describe Server do
     let(:payment_id) { SecureRandom.uuid }
     let(:price) { 1000 }
 
-    it "results in a 'sale completed' event" do
-
+    before do
       # scan item
-      post "/sale/#{sale_id}/scan_item", { item_id: SecureRandom.uuid, shift_id: SecureRandom.uuid, price: price }
+      scan_event = Event.new(sale_id, 'scan_item', { item_id: SecureRandom.uuid, shift_id: SecureRandom.uuid, price: price })
 
       # make payment
-      post "/payment/#{payment_id}/make_cash_payment", { sale_id: sale_id, amount: price }
+      payment_event = Event.new(payment_id, 'make_cash_payment', { sale_id: sale_id, amount: price })
+
+      es = class_double(EventSource).as_stubbed_const
+
+      allow(es).to receive(:get_after).and_yield(scan_event).and_yield(payment_event)
+    end
+
+
+    it "results in a 'sale completed' event" do
 
       # set up expectation
       expect(EventSink)
