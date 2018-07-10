@@ -1,9 +1,12 @@
 class Sale
   UnknownEventError = Class.new(StandardError)
 
+  SaleItem = Struct.new(:id, :price)
+
   def initialize(event_sink, id)
     @event_sink = event_sink
     @id = id
+    @sale_items = []
   end
 
   def replay(events)
@@ -29,6 +32,6 @@ class Sale
   private
 
   def replay_scan_item(event)
-    @item_id = event.body['item_id']
+    @sale_items << SaleItem.new(event.body['item_id'], event.body['price'])
   end
 end
