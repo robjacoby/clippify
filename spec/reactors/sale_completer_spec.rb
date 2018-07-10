@@ -11,45 +11,99 @@ RSpec.describe SaleCompleter do
 
     let(:bookmark) { double("Bookmark", first: {}, update: nil) }
 
-    before do
-      # scan item
-      scan_event = Event.new(sale_id, 'item_scanned', {
-        'item_id' => SecureRandom.uuid,
-        'shift_id' => SecureRandom.uuid,
-        'price' => price
-      })
+    context 'payment made in full' do
+      before do
+        # scan item
+        scan_event = Event.new(sale_id, 'item_scanned', {
+          'item_id' => SecureRandom.uuid,
+          'shift_id' => SecureRandom.uuid,
+          'price' => price
+        })
 
-      # make payment
-      payment_event = Event.new(payment_id, 'cash_payment_made', {
-        'sale_id' => sale_id,
-        'amount' => price
-      })
+        # make payment
+        payment_event = Event.new(payment_id, 'cash_payment_made', {
+          'sale_id' => sale_id,
+          'amount' => price
+        })
 
-      es = class_double(EventSource).as_stubbed_const
+        es = class_double(EventSource).as_stubbed_const
 
-      allow(es).to receive(:get_after)
-                     .and_yield(scan_event, 1)
-                     .and_yield(payment_event, 2)
+        allow(es).to receive(:get_after)
+                       .and_yield(scan_event, 1)
+                       .and_yield(payment_event, 2)
+      end
+
+      it "results in a 'sale completed' event" do
+
+        # set up expectation
+        expect(EventSink)
+          .to receive(:sink)
+                .with(
+                  object_having(
+                    Event,
+                    aggregate_id: sale_id,
+                    type: 'sale_completed',
+                    body: {
+                      completed_at: sale_completed_at.utc.iso8601
+                    }
+                  )
+                )
+
+        Timecop.freeze(sale_completed_at) do
+          SaleCompleter.new(EventSink).run_once(bookmark)
+        end
+      end
     end
 
-    it "results in a 'sale completed' event" do
+    context 'payment made in parts' do
+      before do
+        # scan item
+        scan_event = Event.new(sale_id, 'item_scanned', {
+          'item_id' => SecureRandom.uuid,
+          'shift_id' => SecureRandom.uuid,
+          'price' => price
+        })
 
-      # set up expectation
-      expect(EventSink)
-        .to receive(:sink)
-        .with(
-          object_having(
-            Event,
-            aggregate_id: sale_id,
-            type: 'sale_completed',
-            body: {
-              completed_at: sale_completed_at.utc.iso8601
-            }
-          )
-        )
+        # make payment
+        payment_event_1 = Event.new(payment_id, 'cash_payment_made', {
+          'sale_id' => sale_id,
+          'amount' => price / 2
+        })
 
-      Timecop.freeze(sale_completed_at) do
-        SaleCompleter.new(EventSink).run_once(bookmark)
+        # make payment
+        payment_event_2 = Event.new(payment_id, 'gift_card_payment_made', {
+          'sale_id' => sale_id,
+          'gift_card_id' => SecureRandom.uuid,
+          'amount' => price / 2
+        })
+
+        es = class_double(EventSource).as_stubbed_const
+
+        allow(es).to receive(:get_after)
+                       .and_yield(scan_event, 1)
+                       .and_yield(payment_event_1, 2)
+                       .and_yield(payment_event_2, 3)
+      end
+
+      it "results in a 'sale completed' event" do
+
+        # set up expectation
+        expect(EventSink)
+          .to receive(:sink)
+                .with(
+                  object_having(
+                    Event,
+                    aggregate_id: sale_id,
+                    type: 'sale_completed',
+                    body: {
+                      completed_at: sale_completed_at.utc.iso8601
+                    }
+                  )
+                )
+
+        Timecop.freeze(sale_completed_at) do
+          SaleCompleter.new(EventSink).run_once(bookmark)
+        end
       end
     end
   end
