@@ -111,6 +111,7 @@ RSpec.describe Server do
       params = {
         item_id: SecureRandom.uuid,
         shift_id: SecureRandom.uuid,
+        price: 1000
       }
       post "/sale/#{sale_id}/scan_item", params
       expect(last_response).to be_created
@@ -120,6 +121,8 @@ RSpec.describe Server do
       sale_id = SecureRandom.uuid
       item_id = SecureRandom.uuid
       shift_id = SecureRandom.uuid
+      price = 1000
+
       expect(EventSink)
         .to receive(:sink)
               .with(
@@ -130,6 +133,7 @@ RSpec.describe Server do
                   body: {
                     item_id: item_id,
                     shift_id: shift_id,
+                    price: price
                   }
                 )
               )
@@ -137,7 +141,9 @@ RSpec.describe Server do
       params = {
         item_id: item_id,
         shift_id: shift_id,
+        price: price
       }
+
       post "/sale/#{sale_id}/scan_item", params
     end
   end

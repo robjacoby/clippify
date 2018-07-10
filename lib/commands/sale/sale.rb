@@ -17,10 +17,11 @@ class Sale
     end
   end
 
-  def scan_item(item_id, shift_id)
+  def scan_item(item_id, shift_id, price)
     event = Event.new(@id, 'item_scanned', {
       item_id: item_id,
-      shift_id: shift_id
+      shift_id: shift_id,
+      price: price
     })
     @event_sink.sink(event)
   end
