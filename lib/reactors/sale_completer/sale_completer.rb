@@ -1,9 +1,9 @@
 require_relative '../../event_store/event_source'
-require_relative '../../event_store/event_sink'
 require_relative '../database'
 
 class SaleCompleter
-  def initialize
+  def initialize(event_sink)
+    @event_sink = event_sink
     @outstanding_sale_totals = Hash.new { |hash, key| hash[key] = 0 }
   end
 
@@ -28,12 +28,16 @@ class SaleCompleter
     case event.type
     when 'item_scanned'
       @outstanding_sale_totals[event.aggregate_id] += event.body['price']
-
-    when 'cash_payment_made'
+    when 'cash_payment_made',
+         'gift_card_payment_made',
+         'credit_card_payment_made'
       @outstanding_sale_totals[event.body['sale_id']] -= event.body['amount']
 
       if @outstanding_sale_totals[event.body['sale_id']].zero?
-        EventSink.sink Event.new(event.body['sale_id'], 'sale_completed', { completed_at: Time.now.utc.iso8601 })
+        event = Event.new(event.body['sale_id'], 'sale_completed', {
+          completed_at: Time.now.utc.iso8601
+        })
+        @event_sink.sink(event)
       end
     end
   end
