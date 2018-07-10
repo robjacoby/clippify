@@ -1,4 +1,5 @@
 require 'byebug'
+require 'timecop'
 
 require_relative 'support/object_having'
 
