@@ -178,4 +178,45 @@ RSpec.describe Server do
       post "/payment/#{payment_id}/make_cash_payment", params
     end
   end
+
+  describe 'make_gift_card_payment' do
+    it 'accepts the command' do
+      payment_id = SecureRandom.uuid
+      params = {
+        amount: 1000,
+        sale_id: SecureRandom.uuid,
+        gift_card_id: SecureRandom.uuid
+      }
+      post "/payment/#{payment_id}/make_gift_card_payment", params
+      expect(last_response).to be_created
+    end
+
+    it 'creates the event in the event store' do
+      sale_id = SecureRandom.uuid
+      payment_id = SecureRandom.uuid
+      gift_card_id = SecureRandom.uuid
+      amount = 1000
+      expect(EventSink)
+        .to receive(:sink)
+              .with(
+                object_having(
+                  Event,
+                  aggregate_id: payment_id,
+                  type: 'gift_card_payment_made',
+                  body: {
+                    sale_id: sale_id,
+                    gift_card_id: gift_card_id,
+                    amount: amount
+                  }
+                )
+              )
+
+      params = {
+        sale_id: sale_id,
+        gift_card_id: gift_card_id,
+        amount: amount
+      }
+      post "/payment/#{payment_id}/make_gift_card_payment", params
+    end
+  end
 end

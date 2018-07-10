@@ -14,7 +14,6 @@ class Shift
         replay_shift_started(event)
       when 'shift_ended'
         replay_shift_ended(event)
-
       else
         raise UnknownEventError
       end

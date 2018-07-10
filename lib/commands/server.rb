@@ -15,6 +15,9 @@ require_relative 'sale/scan_item/command'
 require_relative 'payment/make_cash_payment/command_handler'
 require_relative 'payment/make_cash_payment/command'
 
+require_relative 'payment/make_gift_card_payment/command_handler'
+require_relative 'payment/make_gift_card_payment/command'
+
 class Server < Sinatra::Base
   get '/' do
     404
@@ -50,6 +53,15 @@ class Server < Sinatra::Base
   post '/payment/:payment_id/make_cash_payment' do
     command = Payment::MakeCashPaymentCommand.new(params)
     Payment::MakeCashPaymentCommandHandler.handle(command)
+    201
+  rescue StandardError => e
+    Clippify.logger.debug e.inspect
+    422
+  end
+
+  post '/payment/:payment_id/make_gift_card_payment' do
+    command = Payment::MakeGiftCardPaymentCommand.new(params)
+    Payment::MakeGiftCardPaymentCommandHandler.handle(command)
     201
   rescue StandardError => e
     Clippify.logger.debug e.inspect
