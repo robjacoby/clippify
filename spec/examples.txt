@@ -1,5 +1,0 @@
-example_id                            | status | run_time        |
-------------------------------------- | ------ | --------------- |
-./spec/commands/server_spec.rb[1:1]   | passed | 0.02254 seconds |
-./spec/commands/server_spec.rb[1:2:1] | passed | 0.05958 seconds |
-./spec/commands/server_spec.rb[1:2:2] | passed | 0.02041 seconds |

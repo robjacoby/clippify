@@ -10,3 +10,4 @@ gem 'shotgun'
 
 gem 'rspec'
 gem 'rack-test'
+gem 'byebug'
