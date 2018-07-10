@@ -17,9 +17,11 @@ class Shift
     end
   end
 
-  def start(start_time)
+  def start(start_time, employee_id, store_id)
     event = Event.new(@id, 'shift_started', {
-      start_time: format_time(start_time)
+      start_time: format_time(start_time),
+      employee_id: employee_id,
+      store_id: store_id
     })
     @event_sink.sink(event)
   end
