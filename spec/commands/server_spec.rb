@@ -277,4 +277,38 @@ RSpec.describe Server do
       post "/payment/#{payment_id}/make_credit_card_payment", params
     end
   end
+
+  fdescribe "the payment process" do
+    let(:sale_completed_at) { Time.now }
+    let(:sale_id) { SecureRandom.uuid }
+    let(:payment_id) { SecureRandom.uuid }
+    let(:price) { 1000 }
+
+    it "results in a 'sale completed' event" do
+
+      # scan item
+      post "/sale/#{sale_id}/scan_item", { item_id: SecureRandom.uuid, shift_id: SecureRandom.uuid, price: price }
+
+      # make payment
+      post "/payment/#{payment_id}/make_cash_payment", { sale_id: sale_id, amount: price }
+
+      # set up expectation
+      expect(EventSink)
+        .to receive(:sink)
+        .with(
+          object_having(
+            Event,
+            aggregate_id: sale_id,
+            type: 'sale_completed',
+            body: {
+              completed_at: sale_completed_at.utc.iso8601
+            }
+          )
+        )
+
+      Timecop.freeze(sale_completed_at) do
+        # run reactor
+      end
+    end
+  end
 end
