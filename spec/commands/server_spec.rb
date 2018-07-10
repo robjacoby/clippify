@@ -34,18 +34,18 @@ RSpec.describe Server do
       store_id = SecureRandom.uuid
       expect(EventSink)
         .to receive(:sink)
-        .with(
-          object_having(
-            Event,
-            aggregate_id: shift_id,
-            type: 'shift_started',
-            body: {
-              start_time: start_time.utc.iso8601,
-              employee_id: employee_id,
-              store_id: store_id
-            }
-          )
-        )
+              .with(
+                object_having(
+                  Event,
+                  aggregate_id: shift_id,
+                  type: 'shift_started',
+                  body: {
+                    start_time: start_time.utc.iso8601,
+                    employee_id: employee_id,
+                    store_id: store_id
+                  }
+                )
+              )
 
       params = {
         start_time: start_time.iso8601,
@@ -87,16 +87,16 @@ RSpec.describe Server do
 
       expect(EventSink)
         .to receive(:sink)
-        .with(
-          object_having(
-            Event,
-            aggregate_id: shift_id,
-            type: 'shift_ended',
-            body: {
-              end_time: end_time.utc.iso8601,
-            }
-          )
-        )
+              .with(
+                object_having(
+                  Event,
+                  aggregate_id: shift_id,
+                  type: 'shift_ended',
+                  body: {
+                    end_time: end_time.utc.iso8601,
+                  }
+                )
+              )
       params = {
         end_time: end_time.iso8601,
       }
@@ -122,17 +122,17 @@ RSpec.describe Server do
       shift_id = SecureRandom.uuid
       expect(EventSink)
         .to receive(:sink)
-        .with(
-          object_having(
-            Event,
-            aggregate_id: sale_id,
-            type: 'item_scanned',
-            body: {
-              item_id: item_id,
-              shift_id: shift_id,
-            }
-          )
-        )
+              .with(
+                object_having(
+                  Event,
+                  aggregate_id: sale_id,
+                  type: 'item_scanned',
+                  body: {
+                    item_id: item_id,
+                    shift_id: shift_id,
+                  }
+                )
+              )
 
       params = {
         item_id: item_id,
@@ -217,6 +217,58 @@ RSpec.describe Server do
         amount: amount
       }
       post "/payment/#{payment_id}/make_gift_card_payment", params
+    end
+  end
+
+  describe 'make_credit_card_payment' do
+    it 'accepts the command' do
+      payment_id = SecureRandom.uuid
+      params = {
+        amount: 1000,
+        sale_id: SecureRandom.uuid,
+        credit_card_number: 4123456789012346,
+        expiry_month: 12,
+        expiry_year: 2020,
+        cvv: 123
+      }
+      post "/payment/#{payment_id}/make_credit_card_payment", params
+      expect(last_response).to be_created
+    end
+
+    it 'creates the event in the event store' do
+      sale_id = SecureRandom.uuid
+      payment_id = SecureRandom.uuid
+      credit_card_number = 4123456789012346
+      expiry_month = 12
+      expiry_year = 2020
+      cvv = 123
+      amount = 1000
+      expect(EventSink)
+        .to receive(:sink)
+              .with(
+                object_having(
+                  Event,
+                  aggregate_id: payment_id,
+                  type: 'credit_card_payment_made',
+                  body: {
+                    sale_id: sale_id,
+                    amount: amount,
+                    credit_card_number: credit_card_number.to_s,
+                    expiry: "#{expiry_month}/#{expiry_year}",
+                    cvv: cvv.to_s,
+                  }
+                )
+              )
+
+      params = {
+        sale_id: sale_id,
+        credit_card_number: credit_card_number,
+        expiry_month: expiry_month,
+        expiry_year: expiry_year,
+        amount: amount,
+        cvv: cvv,
+      }
+      post "/payment/#{payment_id}/make_credit_card_payment", params
     end
   end
 end
