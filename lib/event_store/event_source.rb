@@ -7,8 +7,8 @@ class EventSource
       where(aggregate_id: aggregate_id).
       order(:sequence_id).
       all.map do |row|
-      Event.new(row[:aggregate_id], row[:type], row[:body].to_h)
-    end
+        Event.new(row[:aggregate_id], row[:type], row[:body].to_h)
+      end
   end
 
   def self.get_after(sequence_id)
@@ -16,7 +16,7 @@ class EventSource
       where(Sequel.lit('sequence_id > ?', sequence_id)).
       order(:sequence_id).
       all.each do |row|
-      yield Event.new(row[:aggregate_id], row[:type], row[:body].to_h), row[:sequence_id]
-    end
+        yield Event.new(row[:aggregate_id], row[:type], row[:body].to_h), row[:sequence_id]
+      end
   end
 end

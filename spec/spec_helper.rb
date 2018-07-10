@@ -1,3 +1,5 @@
+require 'byebug'
+
 require_relative 'support/object_having'
 
 RSpec.configure do |config|

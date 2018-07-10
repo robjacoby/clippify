@@ -53,4 +53,46 @@ RSpec.describe Server do
       post "/shift/#{shift_id}/start", params
     end
   end
+
+  describe 'end shift' do
+    let(:shift_id) { SecureRandom.uuid }
+
+    before do
+      events = [
+        Event.new(shift_id, 'shift_started', { 'start_time' => Time.now.utc.iso8601, 'employee_id' => SecureRandom.uuid, 'store_id' => SecureRandom.uuid })
+      ]
+
+      class_double(EventSource, get_by_aggregate_id: events).as_stubbed_const
+    end
+
+    it 'accepts the command' do
+      params = {
+        end_time: Time.now.iso8601
+      }
+
+      post "/shift/#{shift_id}/end", params
+      expect(last_response).to be_created
+    end
+
+    it 'creates the event in the event store' do
+      end_time = Time.now
+
+      expect(EventSink).to receive(:sink)
+                             .with(
+                               object_having(
+                                 Event,
+                                 aggregate_id: shift_id,
+                                 type: 'shift_ended',
+                                 body: {
+                                   end_time: end_time.utc.iso8601,
+                                 }
+                               )
+                             )
+      params = {
+        end_time: end_time.iso8601,
+      }
+
+      post "/shift/#{shift_id}/end", params
+    end
+  end
 end
