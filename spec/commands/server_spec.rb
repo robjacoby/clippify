@@ -32,19 +32,21 @@ RSpec.describe Server do
       start_time = Time.now
       employee_id = SecureRandom.uuid
       store_id = SecureRandom.uuid
-      expect(EventSink).to receive(:sink)
-                             .with(
-                               object_having(
-                                 Event,
-                                 aggregate_id: shift_id,
-                                 type: 'shift_started',
-                                 body: {
-                                   start_time: start_time.utc.iso8601,
-                                   employee_id: employee_id,
-                                   store_id: store_id
-                                 }
-                               )
-                             )
+      expect(EventSink)
+        .to receive(:sink)
+        .with(
+          object_having(
+            Event,
+            aggregate_id: shift_id,
+            type: 'shift_started',
+            body: {
+              start_time: start_time.utc.iso8601,
+              employee_id: employee_id,
+              store_id: store_id
+            }
+          )
+        )
+
       params = {
         start_time: start_time.iso8601,
         employee_id: employee_id,
@@ -59,7 +61,13 @@ RSpec.describe Server do
 
     before do
       events = [
-        Event.new(shift_id, 'shift_started', { 'start_time' => Time.now.utc.iso8601, 'employee_id' => SecureRandom.uuid, 'store_id' => SecureRandom.uuid })
+        Event.new(
+          shift_id,
+          'shift_started',
+          'start_time' => Time.now.utc.iso8601,
+          'employee_id' => SecureRandom.uuid,
+          'store_id' => SecureRandom.uuid
+        ),
       ]
 
       class_double(EventSource, get_by_aggregate_id: events).as_stubbed_const
@@ -77,22 +85,60 @@ RSpec.describe Server do
     it 'creates the event in the event store' do
       end_time = Time.now
 
-      expect(EventSink).to receive(:sink)
-                             .with(
-                               object_having(
-                                 Event,
-                                 aggregate_id: shift_id,
-                                 type: 'shift_ended',
-                                 body: {
-                                   end_time: end_time.utc.iso8601,
-                                 }
-                               )
-                             )
+      expect(EventSink)
+        .to receive(:sink)
+        .with(
+          object_having(
+            Event,
+            aggregate_id: shift_id,
+            type: 'shift_ended',
+            body: {
+              end_time: end_time.utc.iso8601,
+            }
+          )
+        )
       params = {
         end_time: end_time.iso8601,
       }
 
       post "/shift/#{shift_id}/end", params
+    end
+  end
+
+  describe 'scan_item' do
+    it 'accepts the command' do
+      sale_id = SecureRandom.uuid
+      params = {
+        item_id: SecureRandom.uuid,
+        shift_id: SecureRandom.uuid,
+      }
+      post "/sale/#{sale_id}/scan_item", params
+      expect(last_response).to be_created
+    end
+
+    it 'creates the event in the event store' do
+      sale_id = SecureRandom.uuid
+      item_id = SecureRandom.uuid
+      shift_id = SecureRandom.uuid
+      expect(EventSink)
+        .to receive(:sink)
+        .with(
+          object_having(
+            Event,
+            aggregate_id: sale_id,
+            type: 'item_scanned',
+            body: {
+              item_id: item_id,
+              shift_id: shift_id,
+            }
+          )
+        )
+
+      params = {
+        item_id: item_id,
+        shift_id: shift_id,
+      }
+      post "/sale/#{sale_id}/scan_item", params
     end
   end
 end
